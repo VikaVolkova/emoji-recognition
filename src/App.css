@@ -1,0 +1,69 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Container for the webcam and canvas */
+.webcam-container {
+  position: relative; /* This is crucial for positioning children absolutely */
+  width: clamp(320px, 70vw, 900px);
+  margin: auto;
+  border-radius: 10px;
+  overflow: hidden; /* Keeps the rounded corners */
+  border: 3px solid #333;
+}
+
+/* Style for the video element */
+.webcam-video {
+  width: 100%;
+  height: auto;
+  /* This creates the "selfie" mirror effect which feels more natural */
+  transform: scaleX(-1);
+}
+
+/* Style for the canvas overlay */
+.webcam-canvas {
+  position: absolute; /* Stack the canvas on top of the video */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Style for the instruction text */
+.instructions {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10; /* Make sure text is on top of everything */
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: sans-serif;
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
