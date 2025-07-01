@@ -16,55 +16,42 @@
   padding: 10px 20px;
   font-size: 16px;
   border-radius: 5px;
-  border: 1px solid #ccc;
+  border: 1px solid #fff2e0;
   cursor: pointer;
-  background-color: #f0f0f0;
+  background-color: #898ac4;
   transition: background-color 0.2s;
+  transition: color 0.2s;
+  color: #fff2e0;
 }
 
 .controls button:hover:not(:disabled) {
-  background-color: #e0e0e0;
+  background-color: #fff2e0;
+  color: #898ac4;
 }
 
 .controls button:disabled {
-  background-color: #ccc;
+  background-color: #fff2e0;
   color: #666;
   cursor: not-allowed;
 }
 
-.analyze-button {
-  background-color: #4287f5;
-  color: white;
-  border-color: #4287f5;
-}
-
-.analyze-button:hover:not(:disabled) {
-  background-color: #357ae8;
-}
-
-/* --- WEBCAM AND CANVAS OVERLAY STYLES (THE IMPORTANT PART) --- */
 .webcam-container {
-  position: relative; /* This is crucial for positioning children absolutely */
+  position: relative;
   width: clamp(320px, 70vw, 900px);
   margin: auto;
   border-radius: 10px;
-  overflow: hidden; /* Keeps the rounded corners */
+  overflow: hidden;
   border: 3px solid #333;
 }
 
-/* Style for the video element */
 .webcam-video {
-  /* This makes the video visible and fills the container */
   display: block;
   width: 100%;
   height: auto;
-  /* This creates the "selfie" mirror effect which feels more natural */
   transform: scaleX(-1);
 }
 
-/* Style for the canvas overlay */
 .webcam-canvas {
-  /* This stacks the canvas directly on top of the video */
   position: absolute;
   top: 0;
   left: 0;
@@ -72,12 +59,11 @@
   height: 100%;
 }
 
-/* Style for the instruction text overlay */
 .instructions {
   position: absolute;
   top: 10px;
   left: 10px;
-  z-index: 10; /* Make sure text is on top of everything */
+  z-index: 10;
   background-color: rgba(0, 0, 0, 0.6);
   color: white;
   padding: 10px;
@@ -87,5 +73,5 @@
 
 .mode-text {
   font-weight: bold;
-  color: #f5a623;
+  color: #898ac4;
 }
