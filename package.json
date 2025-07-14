@@ -12,6 +12,7 @@
   "dependencies": {
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/hands": "^0.4.1675469240",
+    "@tensorflow/tfjs": "^4.17.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

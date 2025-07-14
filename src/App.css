@@ -35,6 +35,21 @@
   cursor: not-allowed;
 }
 
+.prediction-display {
+  text-align: center;
+  margin: 20px auto;
+  padding: 15px;
+  background-color: #f0f8ff;
+  border-left: 5px solid #4287f5;
+  width: clamp(320px, 70vw, 900px);
+  font-family: sans-serif;
+}
+
+.prediction-display h2 {
+  margin: 0;
+  color: #333;
+}
+
 .webcam-container {
   position: relative;
   width: clamp(320px, 70vw, 900px);

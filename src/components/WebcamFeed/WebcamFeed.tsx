@@ -2,9 +2,16 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { Hands, type Results, HAND_CONNECTIONS } from "@mediapipe/hands";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { isIndexFingerUp } from "./gestures";
+import * as tf from "@tensorflow/tfjs";
 
 type Point = { x: number; y: number };
 type Mode = "draw" | "erase";
+
+const ERASE_RADIUS = 25;
+const MODEL_INPUT_WIDTH = 192;
+const MODEL_INPUT_HEIGHT = 192;
+
+const EMOJI_CLASSES = ["bow", "butterfly", "heart", "mountain", "ramen"];
 
 const WebcamFeed = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -15,10 +22,74 @@ const WebcamFeed = () => {
 
   const [mode, setMode] = useState<Mode>("draw");
   const [isDrawing, setIsDrawing] = useState(false);
+
   // We only need to track the current stroke being drawn
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
 
-  const ERASE_RADIUS = 25;
+  //State for the model and prediction result
+  const [model, setModel] = useState<tf.LayersModel | null>(null);
+  const [prediction, setPrediction] = useState<string>("No prediction yet.");
+
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        console.log("Attempting to load model from /tfjs_model/model.json...");
+        const loadedModel = await tf.loadLayersModel("/tfjs_model/model.json");
+
+        setModel(loadedModel);
+      } catch (error) {
+        console.error(error);
+        setPrediction(
+          "Error: Could not load the AI model. Please check the console."
+        );
+      }
+    };
+    loadModel();
+  }, []);
+
+  // The prediction function
+  const predictDrawing = useCallback(async () => {
+    const currentModel = model;
+    const drawingCanvas = drawingCanvasRef.current;
+
+    if (!currentModel || !drawingCanvas) {
+      console.log("Model or canvas not ready.");
+      return;
+    }
+
+    setPrediction("Analyzing...");
+
+    tf.tidy(() => {
+      // get the image from the guaranteed non-null `drawingCanvas`.
+      const imageTensor = tf.browser.fromPixels(drawingCanvas);
+
+      // pre-process the image
+      const resizedTensor = tf.image.resizeBilinear(imageTensor, [
+        MODEL_INPUT_WIDTH,
+        MODEL_INPUT_HEIGHT,
+      ]);
+
+      const expandedTensor = resizedTensor.expandDims(0);
+
+      // make the prediction using the `currentModel`.
+      const result = currentModel.predict(expandedTensor) as tf.Tensor;
+
+      // process the result
+      const probabilities = result.dataSync();
+      const maxProbIndex = result.argMax(-1).dataSync()[0];
+
+      const predictedClass = EMOJI_CLASSES[maxProbIndex];
+      const confidence = probabilities[maxProbIndex];
+
+      console.log(`Prediction: ${predictedClass}, Confidence: ${confidence} `);
+
+      setPrediction(
+        `I see a ${predictedClass}! (Confidence: ${Math.round(
+          confidence * 100
+        )}%)`
+      );
+    });
+  }, [model]);
 
   const commitCurrentStroke = (stroke: Point[]) => {
     const drawingCtx = drawingCanvasRef.current?.getContext("2d");
@@ -28,7 +99,7 @@ const WebcamFeed = () => {
     drawingCtx.translate(drawingCtx.canvas.width, 0);
     drawingCtx.scale(-1, 1);
 
-    drawingCtx.globalCompositeOperation = "source-over"; // Ensure we are drawing on top
+    drawingCtx.globalCompositeOperation = "source-over"; // ensuring we are drawing on top
     drawingCtx.strokeStyle = "#56DFCF";
     drawingCtx.lineWidth = 8;
     drawingCtx.lineCap = "round";
@@ -219,12 +290,7 @@ const WebcamFeed = () => {
   }, []);
 
   const handleAnalyze = () => {
-    console.log("--- Analyzing Drawing ---");
-    const drawingCanvas = drawingCanvasRef.current;
-    if (!drawingCanvas) return;
-    const imageDataUrl = drawingCanvas.toDataURL("image/png");
-    console.log("Image data for AI model:");
-    console.log(imageDataUrl);
+    predictDrawing();
   };
 
   const handleClear = () => {
@@ -237,6 +303,7 @@ const WebcamFeed = () => {
         drawingCtx.canvas.height
       );
     }
+    setPrediction("Canvas cleared.");
   };
 
   return (
@@ -252,6 +319,9 @@ const WebcamFeed = () => {
         <button onClick={handleAnalyze} className="analyze-button">
           Analyze!
         </button>
+      </div>
+      <div className="prediction-display">
+        <h2>{prediction}</h2>
       </div>
       <div className="webcam-container">
         <p className="instructions">
