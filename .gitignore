@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 trainingData
+trainingData.zip
+tfjs_model.zip
+public/tfjs_model
 
 # Editor directories and files
 .vscode/*
