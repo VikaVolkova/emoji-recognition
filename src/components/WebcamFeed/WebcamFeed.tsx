@@ -3,15 +3,15 @@ import { Hands, type Results, HAND_CONNECTIONS } from "@mediapipe/hands";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { isIndexFingerUp } from "./gestures";
 import * as tf from "@tensorflow/tfjs";
+import { preProcessCanvas } from "../../utils/preProcessCanvas";
 
 type Point = { x: number; y: number };
 type Mode = "draw" | "erase";
 
 const ERASE_RADIUS = 25;
-const MODEL_INPUT_WIDTH = 192;
-const MODEL_INPUT_HEIGHT = 192;
 
-const EMOJI_CLASSES = ["bow", "butterfly", "heart", "mountain", "ramen"];
+const EMOJI_CLASSES = ["bow", "heart", "mountain", "ramen"];
+// const EMOJI_CLASSES = ["bow", "butterfly", "heart", "mountain", "ramen"];
 
 const WebcamFeed = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -33,7 +33,6 @@ const WebcamFeed = () => {
   useEffect(() => {
     const loadModel = async () => {
       try {
-        console.log("Attempting to load model from /tfjs_model/model.json...");
         const loadedModel = await tf.loadLayersModel("/tfjs_model/model.json");
 
         setModel(loadedModel);
@@ -52,6 +51,7 @@ const WebcamFeed = () => {
     const currentModel = model;
     const drawingCanvas = drawingCanvasRef.current;
 
+    // --- Step 1: Guard clauses ---
     if (!currentModel || !drawingCanvas) {
       console.log("Model or canvas not ready.");
       return;
@@ -59,37 +59,38 @@ const WebcamFeed = () => {
 
     setPrediction("Analyzing...");
 
-    tf.tidy(() => {
-      // get the image from the guaranteed non-null `drawingCanvas`.
-      const imageTensor = tf.browser.fromPixels(drawingCanvas);
+    // --- Step 2: Pre-process the canvas ---
+    // This is the CRITICAL change. We now use our dedicated function
+    // which crops, pads, and resizes exactly like the Python training script.
+    const tensor = preProcessCanvas(drawingCanvas);
 
-      // pre-process the image
-      const resizedTensor = tf.image.resizeBilinear(imageTensor, [
-        MODEL_INPUT_WIDTH,
-        MODEL_INPUT_HEIGHT,
-      ]);
+    // --- Step 3: Make the prediction ---
+    // We get the prediction as a new tensor.
+    const prediction = currentModel.predict(tensor) as tf.Tensor;
 
-      const expandedTensor = resizedTensor.expandDims(0);
+    // --- Step 4: Get data from tensors asynchronously ---
+    // Using await is better than dataSync() as it doesn't block the UI.
+    const probabilities = await prediction.data();
+    const maxProbIndex = (await prediction.argMax(-1).data())[0];
 
-      // make the prediction using the `currentModel`.
-      const result = currentModel.predict(expandedTensor) as tf.Tensor;
+    // --- Step 5: Clean up memory ---
+    // Since we are not in a tf.tidy() block due to the async calls,
+    // we MUST manually dispose of the tensors we created.
+    tensor.dispose();
+    prediction.dispose();
 
-      // process the result
-      const probabilities = result.dataSync();
-      const maxProbIndex = result.argMax(-1).dataSync()[0];
+    // --- Step 6: Update the UI with the results ---
+    const predictedClass = EMOJI_CLASSES[maxProbIndex];
+    const confidence = probabilities[maxProbIndex];
 
-      const predictedClass = EMOJI_CLASSES[maxProbIndex];
-      const confidence = probabilities[maxProbIndex];
+    console.log(`Prediction: ${predictedClass}, Confidence: ${confidence}`);
 
-      console.log(`Prediction: ${predictedClass}, Confidence: ${confidence} `);
-
-      setPrediction(
-        `I see a ${predictedClass}! (Confidence: ${Math.round(
-          confidence * 100
-        )}%)`
-      );
-    });
-  }, [model]);
+    setPrediction(
+      `I see a ${predictedClass}! (Confidence: ${Math.round(
+        confidence * 100
+      )}%)`
+    );
+  }, [model, setPrediction]);
 
   const commitCurrentStroke = (stroke: Point[]) => {
     const drawingCtx = drawingCanvasRef.current?.getContext("2d");
@@ -305,6 +306,41 @@ const WebcamFeed = () => {
     }
     setPrediction("Canvas cleared.");
   };
+
+  // const [number, setNumber] = useState(1);
+
+  // const handleSave = () => {
+  //   const drawingCanvas = drawingCanvasRef.current;
+  //   if (!drawingCanvas) return;
+
+  //   const tempCanvas = document.createElement("canvas");
+  //   const tempCtx = tempCanvas.getContext("2d");
+  //   if (!tempCtx) return;
+
+  //   tempCanvas.width = drawingCanvas.width;
+  //   tempCanvas.height = drawingCanvas.height;
+
+  //   tempCtx.fillStyle = "none";
+  //   tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+  //   tempCtx.drawImage(drawingCanvas, 0, 0);
+
+  //   const imageDataUrl = tempCanvas.toDataURL("image/png");
+
+  //   const link = document.createElement("a");
+  //   link.style.display = "none";
+  //   document.body.appendChild(link);
+
+  //   link.href = imageDataUrl;
+  //   link.download = `bow-${number}.png`;
+
+  //   link.click();
+
+  //   document.body.removeChild(link);
+  //   setNumber((prev) => prev + 1);
+
+  //   console.log("Download initiated!");
+  // };
 
   return (
     <>
