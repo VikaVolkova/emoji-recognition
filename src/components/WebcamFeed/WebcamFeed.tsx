@@ -4,6 +4,10 @@ import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import { isIndexFingerUp } from "./gestures";
 import * as tf from "@tensorflow/tfjs";
 import { preProcessCanvas } from "../../utils/preProcessCanvas";
+import bowIcon from "../../assets/bow.png";
+import heartIcon from "../../assets/heart.png";
+import mountainIcon from "../../assets/mountain.png";
+import ramenIcon from "../../assets/ramen.png";
 
 type Point = { x: number; y: number };
 type Mode = "draw" | "erase";
@@ -13,22 +17,30 @@ const ERASE_RADIUS = 25;
 const EMOJI_CLASSES = ["bow", "heart", "mountain", "ramen"];
 // const EMOJI_CLASSES = ["bow", "butterfly", "heart", "mountain", "ramen"];
 
+const iconMap: Record<string, string> = {
+  bow: bowIcon,
+  heart: heartIcon,
+  mountain: mountainIcon,
+  ramen: ramenIcon,
+};
+
 const WebcamFeed = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // two canvas refs
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const interactionCanvasRef = useRef<HTMLCanvasElement>(null);
   const onResultsRef = useRef<((results: Results) => void) | null>(null);
 
   const [mode, setMode] = useState<Mode>("draw");
   const [isDrawing, setIsDrawing] = useState(false);
-
-  // We only need to track the current stroke being drawn
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
-
-  //State for the model and prediction result
   const [model, setModel] = useState<tf.LayersModel | null>(null);
-  const [prediction, setPrediction] = useState<string>("No prediction yet.");
+  const [prediction, setPrediction] = useState<{
+    text: string;
+    icon?: string | null;
+  }>({
+    text: "Draw an emoji and click Analyze!",
+    icon: null,
+  });
 
   useEffect(() => {
     const loadModel = async () => {
@@ -38,58 +50,45 @@ const WebcamFeed = () => {
         setModel(loadedModel);
       } catch (error) {
         console.error(error);
-        setPrediction(
-          "Error: Could not load the AI model. Please check the console."
-        );
+        setPrediction({
+          text: "Error: Could not load the AI model. Please check the console.",
+        });
       }
     };
     loadModel();
   }, []);
 
-  // The prediction function
   const predictDrawing = useCallback(async () => {
     const currentModel = model;
     const drawingCanvas = drawingCanvasRef.current;
 
-    // --- Step 1: Guard clauses ---
     if (!currentModel || !drawingCanvas) {
       console.log("Model or canvas not ready.");
       return;
     }
 
-    setPrediction("Analyzing...");
+    setPrediction({ text: "Analyzing..." });
 
-    // --- Step 2: Pre-process the canvas ---
-    // This is the CRITICAL change. We now use our dedicated function
-    // which crops, pads, and resizes exactly like the Python training script.
     const tensor = preProcessCanvas(drawingCanvas);
-
-    // --- Step 3: Make the prediction ---
-    // We get the prediction as a new tensor.
     const prediction = currentModel.predict(tensor) as tf.Tensor;
 
-    // --- Step 4: Get data from tensors asynchronously ---
-    // Using await is better than dataSync() as it doesn't block the UI.
     const probabilities = await prediction.data();
     const maxProbIndex = (await prediction.argMax(-1).data())[0];
 
-    // --- Step 5: Clean up memory ---
-    // Since we are not in a tf.tidy() block due to the async calls,
-    // we MUST manually dispose of the tensors we created.
     tensor.dispose();
     prediction.dispose();
 
-    // --- Step 6: Update the UI with the results ---
     const predictedClass = EMOJI_CLASSES[maxProbIndex];
     const confidence = probabilities[maxProbIndex];
 
     console.log(`Prediction: ${predictedClass}, Confidence: ${confidence}`);
 
-    setPrediction(
-      `I see a ${predictedClass}! (Confidence: ${Math.round(
+    setPrediction({
+      text: `I see a ${predictedClass}! (Confidence: ${Math.round(
         confidence * 100
-      )}%)`
-    );
+      )}%)`,
+      icon: iconMap[predictedClass], // Look up the icon using the predicted class name
+    });
   }, [model, setPrediction]);
 
   const commitCurrentStroke = (stroke: Point[]) => {
@@ -304,7 +303,7 @@ const WebcamFeed = () => {
         drawingCtx.canvas.height
       );
     }
-    setPrediction("Canvas cleared.");
+    setPrediction({ text: "Canvas cleared." });
   };
 
   // const [number, setNumber] = useState(1);
@@ -357,7 +356,14 @@ const WebcamFeed = () => {
         </button>
       </div>
       <div className="prediction-display">
-        <h2>{prediction}</h2>
+        <h2>{prediction.text}</h2>
+        {prediction.icon && (
+          <img
+            src={prediction.icon}
+            alt="Predicted emoji icon"
+            className="predictionIcon"
+          />
+        )}
       </div>
       <div className="webcam-container">
         <p className="instructions">
