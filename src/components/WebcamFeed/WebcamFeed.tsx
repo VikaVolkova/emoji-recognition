@@ -1,13 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Hands, type Results, HAND_CONNECTIONS } from "@mediapipe/hands";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
-import { isIndexFingerUp } from "./gestures";
+import { detectGesture, type Gesture } from "./gestures";
 import * as tf from "@tensorflow/tfjs";
 import { preProcessCanvas } from "../../utils/preProcessCanvas";
 import bowIcon from "../../assets/bow.png";
 import heartIcon from "../../assets/heart.png";
 import mountainIcon from "../../assets/mountain.png";
 import ramenIcon from "../../assets/ramen.png";
+import { checkIsCanvasEmpty } from "../../utils/checkIsCanvasEmpty";
 
 type Point = { x: number; y: number };
 type Mode = "draw" | "erase";
@@ -15,7 +16,6 @@ type Mode = "draw" | "erase";
 const ERASE_RADIUS = 25;
 
 const EMOJI_CLASSES = ["bow", "heart", "mountain", "ramen"];
-// const EMOJI_CLASSES = ["bow", "butterfly", "heart", "mountain", "ramen"];
 
 const iconMap: Record<string, string> = {
   bow: bowIcon,
@@ -29,6 +29,7 @@ const WebcamFeed = () => {
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const interactionCanvasRef = useRef<HTMLCanvasElement>(null);
   const onResultsRef = useRef<((results: Results) => void) | null>(null);
+  // const [number, setNumber] = useState(1); -- needed for data training
 
   const [mode, setMode] = useState<Mode>("draw");
   const [isDrawing, setIsDrawing] = useState(false);
@@ -63,7 +64,7 @@ const WebcamFeed = () => {
     const drawingCanvas = drawingCanvasRef.current;
 
     if (!currentModel || !drawingCanvas) {
-      console.log("Model or canvas not ready.");
+      setPrediction({ text: "Model or drawing not ready." });
       return;
     }
 
@@ -81,13 +82,11 @@ const WebcamFeed = () => {
     const predictedClass = EMOJI_CLASSES[maxProbIndex];
     const confidence = probabilities[maxProbIndex];
 
-    console.log(`Prediction: ${predictedClass}, Confidence: ${confidence}`);
-
     setPrediction({
       text: `I see a ${predictedClass}! (Confidence: ${Math.round(
         confidence * 100
       )}%)`,
-      icon: iconMap[predictedClass], // Look up the icon using the predicted class name
+      icon: iconMap[predictedClass],
     });
   }, [model, setPrediction]);
 
@@ -119,6 +118,31 @@ const WebcamFeed = () => {
     drawingCtx.restore();
   };
 
+  const handleAnalyze = useCallback(() => {
+    const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas || checkIsCanvasEmpty(drawingCanvas)) {
+      setPrediction({ text: "Please draw something first!" });
+      return;
+    }
+    predictDrawing();
+  }, [predictDrawing]);
+
+  const handleClear = useCallback(() => {
+    const drawingCtx = drawingCanvasRef.current?.getContext("2d");
+    if (drawingCtx) {
+      drawingCtx.clearRect(
+        0,
+        0,
+        drawingCtx.canvas.width,
+        drawingCtx.canvas.height
+      );
+    }
+    setPrediction({ text: "Canvas cleared." });
+  }, []);
+
+  const [actionCooldownEnd, setActionCooldownEnd] = useState(0);
+  const [lastGesture, setLastGesture] = useState<Gesture>("NONE");
+
   const handleResults = useCallback(
     (results: Results) => {
       if (
@@ -128,7 +152,6 @@ const WebcamFeed = () => {
       )
         return;
 
-      // Get contexts for both canvases
       const drawingCtx = drawingCanvasRef.current.getContext("2d")!;
       const interactionCtx = interactionCanvasRef.current.getContext("2d")!;
 
@@ -142,7 +165,7 @@ const WebcamFeed = () => {
 
       if (results.multiHandLandmarks && results.multiHandLandmarks[0]) {
         const landmarks = results.multiHandLandmarks[0];
-        const userIsPointing = isIndexFingerUp(landmarks);
+        const currentGesture = detectGesture(landmarks);
         const indexTip = landmarks[8];
 
         // Draw skeleton on the interaction canvas
@@ -159,7 +182,7 @@ const WebcamFeed = () => {
         });
         interactionCtx.restore();
 
-        if (userIsPointing) {
+        if (currentGesture === "INDEX_FINGER_UP") {
           if (!isDrawing) setIsDrawing(true);
 
           if (mode === "draw") {
@@ -189,7 +212,6 @@ const WebcamFeed = () => {
               interactionCtx.restore();
             }
           } else if (mode === "erase") {
-            // --- PIXEL ERASING LOGIC ---
             drawingCtx.save();
             drawingCtx.translate(drawingCtx.canvas.width, 0);
             drawingCtx.scale(-1, 1);
@@ -206,24 +228,52 @@ const WebcamFeed = () => {
             drawingCtx.fill();
             drawingCtx.restore();
           }
-        } else if (isDrawing) {
+        } else {
+          if (isDrawing) {
+            setIsDrawing(false);
+            if (mode === "draw" && currentStroke.length > 1) {
+              commitCurrentStroke(currentStroke);
+            }
+            setCurrentStroke([]);
+          }
+        }
+        const now = Date.now();
+        if (currentGesture !== lastGesture && now > actionCooldownEnd) {
+          switch (currentGesture) {
+            case "FIST":
+              handleClear();
+              setActionCooldownEnd(now + 1000);
+              break;
+            case "OPEN_HAND":
+              handleAnalyze();
+              setActionCooldownEnd(now + 1000);
+              break;
+          }
+        }
+
+        setLastGesture(currentGesture);
+      } else {
+        if (isDrawing) {
           setIsDrawing(false);
           if (mode === "draw" && currentStroke.length > 1) {
-            // When drawing stops, commit the line to the persistent canvas
             commitCurrentStroke(currentStroke);
           }
           setCurrentStroke([]);
         }
-      } else if (isDrawing) {
-        // Handle hand loss mid-action
-        setIsDrawing(false);
-        if (mode === "draw" && currentStroke.length > 1) {
-          commitCurrentStroke(currentStroke);
+        if (lastGesture !== "NONE") {
+          setLastGesture("NONE");
         }
-        setCurrentStroke([]);
       }
     },
-    [mode, isDrawing, currentStroke]
+    [
+      mode,
+      isDrawing,
+      currentStroke,
+      lastGesture,
+      actionCooldownEnd,
+      handleAnalyze,
+      handleClear,
+    ]
   );
 
   useEffect(() => {
@@ -288,58 +338,6 @@ const WebcamFeed = () => {
           .forEach((track) => track.stop());
     };
   }, []);
-
-  const handleAnalyze = () => {
-    predictDrawing();
-  };
-
-  const handleClear = () => {
-    const drawingCtx = drawingCanvasRef.current?.getContext("2d");
-    if (drawingCtx) {
-      drawingCtx.clearRect(
-        0,
-        0,
-        drawingCtx.canvas.width,
-        drawingCtx.canvas.height
-      );
-    }
-    setPrediction({ text: "Canvas cleared." });
-  };
-
-  // const [number, setNumber] = useState(1);
-
-  // const handleSave = () => {
-  //   const drawingCanvas = drawingCanvasRef.current;
-  //   if (!drawingCanvas) return;
-
-  //   const tempCanvas = document.createElement("canvas");
-  //   const tempCtx = tempCanvas.getContext("2d");
-  //   if (!tempCtx) return;
-
-  //   tempCanvas.width = drawingCanvas.width;
-  //   tempCanvas.height = drawingCanvas.height;
-
-  //   tempCtx.fillStyle = "none";
-  //   tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-  //   tempCtx.drawImage(drawingCanvas, 0, 0);
-
-  //   const imageDataUrl = tempCanvas.toDataURL("image/png");
-
-  //   const link = document.createElement("a");
-  //   link.style.display = "none";
-  //   document.body.appendChild(link);
-
-  //   link.href = imageDataUrl;
-  //   link.download = `bow-${number}.png`;
-
-  //   link.click();
-
-  //   document.body.removeChild(link);
-  //   setNumber((prev) => prev + 1);
-
-  //   console.log("Download initiated!");
-  // };
 
   return (
     <>
