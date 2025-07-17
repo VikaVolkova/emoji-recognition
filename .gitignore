@@ -15,6 +15,7 @@ trainingData
 trainingData.zip
 tfjs_model.zip
 public/tfjs_model
+butterfly
 
 # Editor directories and files
 .vscode/*
