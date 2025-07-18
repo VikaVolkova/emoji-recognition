@@ -8,6 +8,9 @@ import bowIcon from "../../assets/bow.png";
 import heartIcon from "../../assets/heart.png";
 import mountainIcon from "../../assets/mountain.png";
 import ramenIcon from "../../assets/ramen.png";
+import fistIcon from "../../assets/fist.png";
+import handIcon from "../../assets/hand.png";
+import indexUpIcon from "../../assets/indexUp.png";
 import { checkIsCanvasEmpty } from "../../utils/checkIsCanvasEmpty";
 
 type Point = { x: number; y: number };
@@ -359,7 +362,7 @@ const WebcamFeed = () => {
           <img
             src={prediction.icon}
             alt="Predicted emoji icon"
-            className="predictionIcon"
+            className="icon"
           />
         )}
       </div>
@@ -370,6 +373,27 @@ const WebcamFeed = () => {
         <video ref={videoRef} className="webcam-video"></video>
         <canvas ref={drawingCanvasRef} className="webcam-canvas"></canvas>
         <canvas ref={interactionCanvasRef} className="webcam-canvas"></canvas>
+      </div>
+      <div className="gestures">
+        <h2>Control gestures:</h2>
+        <div className="gestures-wrapper">
+          <div className="gesture">
+            <img
+              src={indexUpIcon}
+              alt="Draw/erase gesture icon"
+              className="icon"
+            />
+            <p>Draw/Erase</p>
+          </div>
+          <div className="gesture">
+            <img src={handIcon} alt="Analyze gesture icon" className="icon" />
+            <p>Analyze</p>
+          </div>
+          <div className="gesture">
+            <img src={fistIcon} alt="Clear gesture icon" className="icon" />
+            <p>Clear</p>
+          </div>
+        </div>
       </div>
     </>
   );
