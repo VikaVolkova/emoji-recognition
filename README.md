@@ -13,7 +13,7 @@ An interactive web application that transforms your hand into a paintbrush and y
 
 <!-- ADD A GIF OF THE APP IN ACTION HERE! -->
 
-![Kinetic Ink Demo GIF](./assets/demo.gif)
+![Kinetic Ink Demo GIF](./src/assets/Kinetic Inc.gif)
 
 ## Table of Contents
 
