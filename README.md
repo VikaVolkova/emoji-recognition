@@ -1,38 +1,19 @@
----
-title: "Kinetic Ink: AI Gesture Recognition Canvas"
-description: "An interactive web app that uses real-time hand tracking and a custom AI to recognize drawings."
-date: "2023-10-27"
----
-
-import { App } from "./src/App.tsx";
-
 # Kinetic Ink: AI Gesture Recognition Canvas
 
-An interactive web application that transforms your hand into a paintbrush. Draw on a digital canvas using real-time hand gestures, then command an AI to analyze your creation with a wave of your hand.
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow.js-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
+![MediaPipe](https://img.shields.io/badge/MediaPipe-007bff?style=for-the-badge&logo=google&logoColor=white)
+
+An interactive web application that transforms your hand into a paintbrush and your browser into an intelligent art critic. Draw on a digital canvas using real-time hand gestures, then command an AI to analyze your creation with a wave of your hand.
+
+**[Link to Live Demo]**
 
 ---
 
-### Live Interactive Demo
+<!-- ADD A GIF OF THE APP IN ACTION HERE! -->
 
-**This is not a video!** This is the actual React application running live on the page. Grant camera permissions and try it out.
-
-<div
-  style={{
-    display: "flex",
-    justifyContent: "center",
-    padding: "2rem 0",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    backgroundColor: "#f9f9f9",
-    overflow: "hidden", // Ensures the component fits neatly
-    maxWidth: "1280px", // Matches your app's canvas width
-    margin: "0 auto",
-  }}
->
-  <App />
-</div>
-
----
+![Kinetic Ink Demo GIF](./assets/demo.gif)
 
 ## Table of Contents
 
@@ -42,6 +23,7 @@ An interactive web application that transforms your hand into a paintbrush. Draw
   - [Gesture Control System](#gesture-control-system)
   - [End-to-End Machine Learning Workflow](#end-to-end-machine-learning-workflow)
 - [Running the Project Locally](#running-the-project-locally)
+- [Future Improvements](#future-improvements)
 
 ## Features
 
@@ -117,3 +99,10 @@ To run this application on your local machine, follow these steps:
     ```
 
 4.  Open your browser and navigate to `http://localhost:5173` (or the address provided in your terminal). You will need to grant camera permissions for the application to work.
+
+## Future Improvements
+
+- **More Gestures:** Implement gestures for "Undo" (two-finger tap) and "Redo" (three-finger tap).
+- **Expanded Model Vocabulary:** Train the model to recognize a wider variety of drawings.
+- **Drawing Customization:** Add a color palette and brush size selector.
+- **Save/Load:** Allow users to save their creations to a file or local storage.
