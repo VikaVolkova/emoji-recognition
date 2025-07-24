@@ -1,0 +1,119 @@
+---
+title: "Kinetic Ink: AI Gesture Recognition Canvas"
+description: "An interactive web app that uses real-time hand tracking and a custom AI to recognize drawings."
+date: "2023-10-27"
+---
+
+import { App } from "./src/App.tsx";
+
+# Kinetic Ink: AI Gesture Recognition Canvas
+
+An interactive web application that transforms your hand into a paintbrush. Draw on a digital canvas using real-time hand gestures, then command an AI to analyze your creation with a wave of your hand.
+
+---
+
+### Live Interactive Demo
+
+**This is not a video!** This is the actual React application running live on the page. Grant camera permissions and try it out.
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+    padding: "2rem 0",
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    backgroundColor: "#f9f9f9",
+    overflow: "hidden", // Ensures the component fits neatly
+    maxWidth: "1280px", // Matches your app's canvas width
+    margin: "0 auto",
+  }}
+>
+  <App />
+</div>
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Core Concepts Explained](#core-concepts-explained)
+  - [Gesture Control System](#gesture-control-system)
+  - [End-to-End Machine Learning Workflow](#end-to-end-machine-learning-workflow)
+- [Running the Project Locally](#running-the-project-locally)
+
+## Features
+
+- **Gesture-Based Drawing:** Use your index finger to draw directly onto the canvas in real-time.
+- **Gesture-Based Commands:**
+  - **Open Hand:** Triggers the AI model to analyze the current drawing.
+  - **Fist:** Clears the canvas.
+- **AI Drawing Recognition:** A custom-trained Convolutional Neural Network (CNN) predicts what you've drawn from a set of classes.
+- **Dual Control System:** All gesture commands are also available as on-screen buttons for maximum accessibility and usability.
+- **Erase Mode:** A dedicated mode to erase parts of the drawing with pixel-perfect precision.
+- **Real-Time Visual Feedback:** The application renders the detected hand skeleton, providing users with immediate feedback on what the system is "seeing."
+
+## Technology Stack
+
+- **Front-End:** **React** & **TypeScript** for a robust, type-safe, and component-based UI.
+- **Computer Vision:** **Google MediaPipe** (Hands Solution) for real-time, high-fidelity hand and finger landmark detection directly in the browser.
+- **Machine Learning (Training):** **Python** & **TensorFlow (Keras)** within a **Google Colab** environment for model architecture, training, and data pre-processing.
+- **Machine Learning (Inference):** **TensorFlow.js** for executing the trained model directly in the browser, enabling fast, client-side AI predictions without server-side dependencies.
+
+## Core Concepts Explained
+
+This project is more than a simple drawing app; it's a demonstration of a full-cycle machine learning application.
+
+### Gesture Control System
+
+The user interface is primarily driven by hand poses.
+
+1.  **Landmark Detection:** On every video frame, MediaPipe provides 21 3D landmarks for the user's hand.
+2.  **Geometric Rule-Based Logic:** Instead of a complex second ML model, a set of simple geometric rules written in TypeScript determines the current pose. For example:
+    - **Pointing:** The tip of the index finger is significantly above its middle joint, while other fingertips are below theirs.
+    - **Fist:** All fingertips are below their middle joints, and the thumb tip is close to the middle/ring finger knuckles.
+    - **Open Hand:** All fingertips are extended and above their middle joints.
+3.  **State-Change Trigger Lock:** To prevent actions from firing 30 times per second, the application only triggers a command when the gesture _changes_ from one state to another (e.g., from `None` to `Fist`). A cooldown period is also enforced to prevent accidental re-triggering.
+
+### End-to-End Machine Learning Workflow
+
+The accuracy of the AI analysis depends on a rigorous and consistent pipeline.
+
+1.  **Data Collection:** A custom data collection tool was built into the React app. This allowed for the rapid creation of a large, high-quality, and consistent dataset of drawings for each class (e.g., "heart", "bow").
+
+2.  **Data Pre-processing (Python/Colab):** Before training, every image in the dataset went through a critical pre-processing script:
+
+    - **Crop-to-Content:** The script first finds the bounding box of the actual drawing, discarding empty surrounding space.
+    - **Pad-to-Square:** The cropped image is then resized to fit within a 192x192 square while preserving its aspect ratio. The remaining space is filled with black padding. This ensures all drawings are centered and scaled uniformly.
+
+3.  **Model Training:** A Convolutional Neural Network (CNN) was designed and trained in TensorFlow on this processed dataset. Data augmentation (random rotations, zooms, shifts) was applied to the training set to make the model more robust and prevent overfitting.
+
+4.  **Model Conversion:** The final trained Keras model (`.h5` or `.keras`) was converted into the **TensorFlow.js Layers format** (`model.json` and weight shards), optimized for web deployment.
+
+5.  **Inference-Time Pre-processing (TypeScript):** This is the most critical step for accuracy. The exact same "crop-to-content" and "pad-to-square" logic from the Python script was meticulously replicated in TypeScript. Before a user's drawing is sent to the model for prediction, it undergoes this identical transformation. This guarantees that the model sees live data in the exact same format as the data it was trained on, bridging the gap between the Python training environment and the JavaScript inference environment.
+
+## Running the Project Locally
+
+To run this application on your local machine, follow these steps:
+
+1.  **Clone the Repository**
+
+    ```bash
+    git clone https://github.com/your-username/your-repo-name.git
+    cd your-repo-name
+    ```
+
+2.  **Install Dependencies**
+
+    ```bash
+    npm install
+    ```
+
+3.  **Run the Development Server**
+
+    ```bash
+    npm run dev
+    ```
+
+4.  Open your browser and navigate to `http://localhost:5173` (or the address provided in your terminal). You will need to grant camera permissions for the application to work.
