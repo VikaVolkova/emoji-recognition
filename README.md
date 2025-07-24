@@ -7,13 +7,9 @@
 
 An interactive web application that transforms your hand into a paintbrush and your browser into an intelligent art critic. Draw on a digital canvas using real-time hand gestures, then command an AI to analyze your creation with a wave of your hand.
 
-**[Link to Live Demo]**
-
 ---
 
-<!-- ADD A GIF OF THE APP IN ACTION HERE! -->
-
-![Kinetic Ink Demo GIF](./src/assets/Kinetic Inc.gif)
+![Kinetic Ink Demo GIF](./assets/demo.gif)
 
 ## Table of Contents
 
@@ -31,7 +27,7 @@ An interactive web application that transforms your hand into a paintbrush and y
 - **Gesture-Based Commands:**
   - **Open Hand:** Triggers the AI model to analyze the current drawing.
   - **Fist:** Clears the canvas.
-- **AI Drawing Recognition:** A custom-trained Convolutional Neural Network (CNN) predicts what you've drawn from a set of classes.
+- **AI Drawing Recognition:** A custom-trained Convolutional Neural Network (CNN) predicts what you've drawn. The pre-trained model is configured to recognize four distinct classes: **Heart 💜, Bow 🎀, Mountain 🏔, and Ramen 🍜**.
 - **Dual Control System:** All gesture commands are also available as on-screen buttons for maximum accessibility and usability.
 - **Erase Mode:** A dedicated mode to erase parts of the drawing with pixel-perfect precision.
 - **Real-Time Visual Feedback:** The application renders the detected hand skeleton, providing users with immediate feedback on what the system is "seeing."
@@ -45,7 +41,7 @@ An interactive web application that transforms your hand into a paintbrush and y
 
 ## Core Concepts Explained
 
-This project is more than a simple drawing app; it's a demonstration of a full-cycle machine learning application.
+Beyond its interactive features, this application showcases the complete lifecycle of a machine learning project: from custom data collection and model training to deployment for real-time, in-browser inference.
 
 ### Gesture Control System
 
@@ -62,7 +58,7 @@ The user interface is primarily driven by hand poses.
 
 The accuracy of the AI analysis depends on a rigorous and consistent pipeline.
 
-1.  **Data Collection:** A custom data collection tool was built into the React app. This allowed for the rapid creation of a large, high-quality, and consistent dataset of drawings for each class (e.g., "heart", "bow").
+1.  **Data Collection:** A custom data collection tool was built into the React app. This allowe the rapid creation of a high-quality, and consistent dataset of drawings for each class.
 
 2.  **Data Pre-processing (Python/Colab):** Before training, every image in the dataset went through a critical pre-processing script:
 
@@ -71,13 +67,17 @@ The accuracy of the AI analysis depends on a rigorous and consistent pipeline.
 
 3.  **Model Training:** A Convolutional Neural Network (CNN) was designed and trained in TensorFlow on this processed dataset. Data augmentation (random rotations, zooms, shifts) was applied to the training set to make the model more robust and prevent overfitting.
 
-4.  **Model Conversion:** The final trained Keras model (`.h5` or `.keras`) was converted into the **TensorFlow.js Layers format** (`model.json` and weight shards), optimized for web deployment.
+4.  **Model Conversion:** The final trained Keras model (`.h5`) was converted into the **TensorFlow.js Layers format** (`model.json` and weight shards), optimized for web deployment.
 
-5.  **Inference-Time Pre-processing (TypeScript):** This is the most critical step for accuracy. The exact same "crop-to-content" and "pad-to-square" logic from the Python script was meticulously replicated in TypeScript. Before a user's drawing is sent to the model for prediction, it undergoes this identical transformation. This guarantees that the model sees live data in the exact same format as the data it was trained on, bridging the gap between the Python training environment and the JavaScript inference environment.
+5.  **Inference-Time Pre-processing (TypeScript):** This is the most critical step for accuracy. The exact same "crop-to-content" and "pad-to-square" logic from the Python script was replicated in TypeScript. Before a user's drawing is sent to the model for prediction, it undergoes this identical transformation. This guarantees that the model sees live data in the exact same format as the data it was trained on, decreasing the gap between training data and in-app drawings.
 
 ## Running the Project Locally
 
-To run this application on your local machine, follow these steps:
+**Important Note:** This repository contains the front-end application code only. The pre-trained model files and the training dataset are not included. To run the application with full AI functionality, you must train your own model and integrate it by following the steps below.
+
+### Part A: Run the Front-End Application
+
+This will launch the application with all drawing and gesture detection features, but the "Analyze" function will not work until a model is provided.
 
 1.  **Clone the Repository**
 
@@ -98,11 +98,23 @@ To run this application on your local machine, follow these steps:
     npm run dev
     ```
 
-4.  Open your browser and navigate to `http://localhost:5173` (or the address provided in your terminal). You will need to grant camera permissions for the application to work.
+4.  Open your browser to the provided local address. You will need to grant camera permissions.
 
-## Future Improvements
+### Part B: Train and Prepare Your Own Model
 
-- **More Gestures:** Implement gestures for "Undo" (two-finger tap) and "Redo" (three-finger tap).
-- **Expanded Model Vocabulary:** Train the model to recognize a wider variety of drawings.
-- **Drawing Customization:** Add a color palette and brush size selector.
-- **Save/Load:** Allow users to save their creations to a file or local storage.
+1.  **Gather Training Data:** Create a dataset of images (`.png` or `.jpg`) for each class you want the AI to recognize. Each class should have its own sub-folder (e.g., `data/heart`, `data/bow`, etc.). You can use the `handleSave` utils function included in this project to easily save your own data directly from the running app.
+
+2.  **Train in Google Colab:** Set up a Google Colab notebook with Python and TensorFlow.
+    - **Pre-process your data** using the "crop-to-content" and "pad-to-square" logic described in the "Workflow" section above. The main logic is placed in `preProcessCanvas` utils function.
+    - **Design and train a CNN** on your processed dataset.
+    - **Convert the final model** into the TensorFlow.js format (`model.json` and binary weight files).
+
+### Part C: Integrate Your Model into the App
+
+1.  **Place Model Files:** Create a `tfjs_model` directory inside the `/public` folder of this project. Place your `model.json` and all associated `.bin` weight files into `/public/tfjs_model/`.
+
+2.  **Update Class Labels:** In the application code, find the array that defines the class names (e.g., `EMOJI_CLASSES`). Update this array to match the classes your model was trained on, ensuring the order is the same.
+
+Once these steps are complete, the "Analyze" feature in your local application will be fully functional.
+
+### Have fun with my app!
