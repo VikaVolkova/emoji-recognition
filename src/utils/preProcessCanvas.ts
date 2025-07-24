@@ -1,7 +1,6 @@
 import * as tf from "@tensorflow/tfjs";
 
 export const preProcessCanvas = (canvas: HTMLCanvasElement): tf.Tensor => {
-  // Find bounding box of the drawing
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     throw new Error("Could not get canvas context");
@@ -60,9 +59,8 @@ export const preProcessCanvas = (canvas: HTMLCanvasElement): tf.Tensor => {
     newWidth = Math.floor(192 * (contentWidth / contentHeight));
   }
 
-  // Calculate padding to center the image
-  const topPad = Math.floor((192 - newHeight) / 2);
-  const leftPad = Math.floor((192 - newWidth) / 2);
+  const topPadding = Math.floor((192 - newHeight) / 2);
+  const leftPadding = Math.floor((192 - newWidth) / 2);
 
   // Draw the cropped content onto the offscreen canvas, resizing and padding it
   offscreenCtx.drawImage(
@@ -70,11 +68,11 @@ export const preProcessCanvas = (canvas: HTMLCanvasElement): tf.Tensor => {
     minX,
     minY,
     contentWidth,
-    contentHeight, // Source rectangle (crop)
-    leftPad,
-    topPad,
+    contentHeight,
+    leftPadding,
+    topPadding,
     newWidth,
-    newHeight // Destination rectangle (resize and pad)
+    newHeight
   );
 
   // Convert the final 192x192 canvas to a tensor
