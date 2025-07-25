@@ -15,16 +15,18 @@ const WebcamFeed = () => {
   const interactionCanvasRef = useRef<HTMLCanvasElement>(null);
   // const [number, setNumber] = useState(1); -- needed for data training
 
-  const isLambda = !!(
-    import.meta.env.AWS_LAMBDA_FUNCTION_NAME ||
-    import.meta.env.AWS_EXECUTION_ENV ||
-    import.meta.env.AWS_LAMBDA_FUNCTION_VERSION
-  );
-  const baseUrl = window.location.origin;
+  const isProduction = import.meta.env.PROD;
 
-  const modelBaseURL = isLambda
-    ? `${baseUrl}/api/model.json`
-    : "/tfjs_model/model.json";
+  let modelBaseURL;
+
+  if (isProduction) {
+    const baseUrl = window.location.origin;
+    modelBaseURL = `${baseUrl}/api/model.json`;
+    console.log("Running in PRODUCTION mode. Using API endpoint.");
+  } else {
+    modelBaseURL = "/tfjs_model/model.json";
+    console.log("Running in DEVELOPMENT mode. Using local public folder.");
+  }
 
   const [mode, setMode] = useState<Mode>("draw");
   const [prediction, setPrediction] = useState<{
