@@ -18,6 +18,8 @@ const WebcamFeed = () => {
   const isProduction = import.meta.env.PROD;
   const modelUrl = import.meta.env.VITE_MODEL_URL;
 
+  console.log(modelUrl);
+
   let modelBaseURL;
 
   if (isProduction) {
