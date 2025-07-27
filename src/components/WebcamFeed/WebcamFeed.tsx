@@ -16,7 +16,7 @@ const WebcamFeed = () => {
   // const [number, setNumber] = useState(1); -- needed for data training
 
   const isProduction = import.meta.env.PROD;
-  const modelUrl = import.meta.env.MODEL_URL;
+  const modelUrl = import.meta.env.VITE_MODEL_URL;
 
   let modelBaseURL;
 
