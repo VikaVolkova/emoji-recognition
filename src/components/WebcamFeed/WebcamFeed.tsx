@@ -16,12 +16,12 @@ const WebcamFeed = () => {
   // const [number, setNumber] = useState(1); -- needed for data training
 
   const isProduction = import.meta.env.PROD;
+  const modelUrl = import.meta.env.MODEL_URL;
 
   let modelBaseURL;
 
   if (isProduction) {
-    const baseUrl = window.location.origin;
-    modelBaseURL = `${baseUrl}/api/model.json`;
+    modelBaseURL = modelUrl;
     console.log("Running in PRODUCTION mode. Using API endpoint.");
   } else {
     modelBaseURL = "/tfjs_model/model.json";
